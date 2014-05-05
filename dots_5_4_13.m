@@ -3,26 +3,54 @@
 %
 %INPUT: name(s) of folder(s) containing all relevant images for one
 %hemisphere. 
+%Names of subfolders within hemisphere folders (one per folder) containing
+%the dots, MOR1, GFP, etc. image folders
 %Name(s) of corresponding Excel spreadsheets in which to save
 %tetrode information for each hemisphere.
 %save_format (format of output files)
 %pixels_per_mm
 %dim: side length of square used in cropping 
 %
-%PRECONDITION: All image types (MOR1,CD11, GFP, and dot files for each
-%hemisphere) are in the same folder 
+%PRECONDITION: File structure [hemisphere folder] > [subfolder] > [folders 
+%for particular image types] 
 %
 %OUTPUT: Folders of the format 'Output cropped images - tt[tetrode number]'
 %containing subfolders MOR1, MOR1_0to99, MOR1_0to157, CD11_0to99, Cd11_0to157,
 %CD11, GFP, WMB, and WM_BW
 
+clear all 
+close all
+
 foldernames = {'all aligned'}; %fill in with names of 2 folders to process
+subfoldernames = {'subfolder'}; %subfolders of hemisphere folders containing dots, MOR1, GFP, etc fodlers
 tetrode_spreadsheet_names = {'tt_spreadsheet.xlsx'}; %fill in tetrode spreadsheet 
 %names for these 2 folders. Include '.xlsx' at end
+pixels_per_mm = 1000; %fill in from image
+conversion_factor = pixels_per_mm/1000; %pixels per mm to pixels per micron
+dim = 1000*conversion_factor; %microns -> pixels
+save_format = 'png'; 
 
 for u = 1:length(foldernames)
-    tif_files = dir(fullfile(foldernames{u},'*.tif')); %tif files in folder
-    png_files = dir(fullfile(foldernames{u},'*.png'));
+    imagefolders = dir(fullfile([foldernames{u},'/',subfoldernames{u}]));
+    
+    dotsfolder = '';
+    mor1folder = '';
+    gfpfolder = '';
+    cd11folder = '';
+    
+    %find image subfolders 
+    for k = 1:length(imagefolders)
+        [path, name, ext] = fileparts(imagefolders(k).name);
+        if isempty(strfind(imagefolders(k).name,'dots')) == 0
+            dotsfolder = name;
+        elseif isempty(strfind(imagefolders(k).name,'MOR1')) == 0
+            mor1folder = name;
+        elseif isempty(strfind(imagefolders(k).name,'GFP')) == 0
+            gfpfolder = name;
+        elseif isempty(strfind(imagefolders(k).name,'CD11')) == 0
+            cd11folder = name;
+        end
+    end
 
     %cells to store different types of images and their names 
     gfp = {};
@@ -32,58 +60,58 @@ for u = 1:length(foldernames)
     cd11 = {};
     cd11names = {};
     tt = {};
-    ttnames = {};
-
-    pixels_per_mm = 1000; %fill in from image
-    conversion_factor = pixels_per_mm/1000; %pixels per mm to pixels per micron
-    dim = 1000*conversion_factor; %microns -> pixels
-    save_format = 'png'; 
-
-    %go through images and store mor1, gfp, cd11, and tt and their names
-    for k = 1:length(tif_files)
-        filename = tif_files(k).name;
-        [pathstr, name, ext] = fileparts(filename);
-        
-        display(fullfile(foldernames{u},filename))
-        img = imread(fullfile(foldernames{u},filename));
-
-        if isempty(strfind(name, 'MOR1')) == 0 || isempty(strfind(name, '_0001_')) == 0
-            mor1{end + 1} = img;
-            mor1names{1,end + 1} = name;
-        elseif isempty(strfind(name, 'GFP')) == 0 || isempty(strfind(name, '_0002_')) == 0
-            gfp{end + 1} = img;
-            gfpnames{1,end + 1} = name;
-        elseif isempty(strfind(name, 'CD11')) == 0 || isempty(strfind(name, '_0000_')) == 0
-            cd11{end + 1} = img;
-            cd11names{1,end + 1} = name;
-        elseif isempty(strfind(name, 'tt')) == 0
-            tt{end + 1} = img;
-            ttnames{1,end + 1} = name;
-        end;
-    end;
-
-    for k = 1:length(png_files)
-        filename = png_files(k).name;
-        [pathstr, name, ext] = fileparts(filename);
-        
-        display(fullfile(foldernames{u},filename))
-        img = imread(fullfile(foldernames{u},filename));
-
-        if isempty(strfind(name, 'MOR1')) == 0 || isempty(strfind(name, '_0001_')) == 0
-            mor1{end + 1} = img;
-            mor1names{1,end + 1} = name;
-        elseif isempty(strfind(name, 'GFP')) == 0 || isempty(strfind(name, '_0002_')) == 0
-            gfp{end + 1} = img;
-            gfpnames{1,end + 1} = name;
-        elseif isempty(strfind(name, 'CD11')) == 0 || isempty(strfind(name, '_0000_')) == 0
-            cd11{end + 1} = img;
-            cd11names{1,end + 1} = name;
-        elseif isempty(strfind(name, 'tt')) == 0
-            tt{end + 1} = img;
-            ttnames{1,end + 1} = name;
-        end;
-    end;
-
+    ttnames = {};   
+    
+    %finds and stores image files and names 
+    if strcmp(dotsfolder,'') == 0 %dots subfolder exists
+        files = dir(fullfile([foldernames{u},'/',subfoldernames{u},'/',dotsfolder]));
+        for k = 1:length(files)
+            if isempty(strfind(files(k).name,'.tif')) == 0 || isempty(strfind(files(k).name,'.png')) == 0
+                [path, name, ext] = fileparts(files(k).name);
+                display(fullfile([foldernames{u},'/',subfoldernames{u},'/',dotsfolder,'/',files(k).name]))
+                img = imread(fullfile([foldernames{u},'/',subfoldernames{u},'/',dotsfolder,'/',files(k).name]));
+                tt{end + 1} = img;
+                ttnames{1,end + 1} = name;
+            end
+        end
+    end
+    if strcmp(mor1folder,'') == 0
+        files = dir(fullfile([foldernames{u},'/',subfoldernames{u},'/',mor1folder]));
+        for k = 1:length(files)
+            if isempty(strfind(files(k).name,'.tif')) == 0 || isempty(strfind(files(k).name,'.png')) == 0
+                [path, name, ext] = fileparts(files(k).name);
+                display(fullfile([foldernames{u},'/',subfoldernames{u},'/',mor1folder,'/',files(k).name]))
+                img = imread(fullfile([foldernames{u},'/',subfoldernames{u},'/',mor1folder,'/',files(k).name]));
+                mor1{end + 1} = img;
+                mor1names{1,end + 1} = name;
+            end
+        end
+    end
+    if strcmp(gfpfolder,'') == 0
+        files = dir(fullfile([foldernames{u},'/',subfoldernames{u},'/',gfpfolder]));
+        for k = 1:length(files)
+            if isempty(strfind(files(k).name,'.tif')) == 0 || isempty(strfind(files(k).name,'.png')) == 0
+                [path, name, ext] = fileparts(files(k).name);
+                display(fullfile([foldernames{u},'/',subfoldernames{u},'/',gfpfolder,'/',files(k).name]))
+                img = imread(fullfile([foldernames{u},'/',subfoldernames{u},'/',gfpfolder,'/',files(k).name]));
+                gfp{end + 1} = img;
+                gfpnames{1,end + 1} = name;
+            end
+        end
+    end
+    if strcmp(cd11folder,'') == 0
+        files = dir(fullfile([foldernames{u},'/',subfoldernames{u},'/',cd11folder]));
+        for k = 1:length(files)
+            if isempty(strfind(files(k).name,'.tif')) == 0 || isempty(strfind(files(k).name,'.png')) == 0
+                [path, name, ext] = fileparts(files(k).name);
+                display(fullfile([foldernames{u},'/',subfoldernames{u},'/',cd11folder,'/',files(k).name]))
+                img = imread(fullfile([foldernames{u},'/',subfoldernames{u},'/',cd11folder,'/',files(k).name]));
+                cd11{end + 1} = img;
+                cd11names{1,end + 1} = name;
+            end
+        end
+    end    
+    
     %matrices to store region numbers
     mor1nums = zeros(1,length(mor1));
     gfpnums = zeros(1,length(gfp));
@@ -281,12 +309,12 @@ for u = 1:length(foldernames)
 
             currentinv = imcomplement(current);
 
-            numignoredpx = 0;
+            numignoredpx_edges = 0;
 
             for p = 1:length(blackedge)
                 currentPixList = blackedge{p};
                 [currentUnwantedArea, ~] = size(currentPixList);
-                numignoredpx = numignoredpx + currentUnwantedArea;
+                numignoredpx_edges = numignoredpx_edges + currentUnwantedArea;
                 for n = 1:currentUnwantedArea
                     curY = currentPixList(n,1);
                     curX = currentPixList(n,2);
@@ -306,14 +334,24 @@ for u = 1:length(foldernames)
                 nonblackimg = current2 > 0;
                 pixlists = regionprops(nonblackimg, 'PixelList');
                 [numRegions, ~] = size(pixlists);
-                numignoredpx2 = 0;
+                numignoredpx2 = numignoredpx_edges;
                 for p = 1:numRegions
+                    edge = 0;
                     currentPixList = pixlists(p).PixelList;
                     [currentUnwantedArea, ~] = size(currentPixList);
-
                     if currentUnwantedArea > nonblack_areathresh
-                       numignoredpx = numignoredpx + currentUnwantedArea;                
-                    end            
+                        for n = 1:currentUnwantedArea
+                            curY = currentPixList(n,1);
+                            curX = currentPixList(n,2);
+                            if curY == 1 || curY == b || curX == 1 || curX == a
+                                edge = 1;                
+                            end            
+                        end
+                        if edge == 1
+                            current2(curX,curY) = 0;                    
+                            numignoredpx2 = numignoredpx2 + currentUnwantedArea;
+                        end
+                    end
                 end
                 nonblackimg = current2 > 0;
                 low_in_previous = low_in;
@@ -324,30 +362,37 @@ for u = 1:length(foldernames)
                 nonblackfrac = nonblackfrac_previous;
                 low_in = low_in_previous;
             end
-
+            
+            %saves all wm image before large regions are removed
             newname3 = [image_names{m},'_wm_bw.png'];
             imwrite(nonblackimg,['Output cropped images - tt',ttnums{k},'/WM_BW/',newname3], 'png');
 
-            %make large WM/ventricles black in both images to be saved
+            %makes large WM/ventricles black in both images to be saved
             largewm = zeros(size(current2));
             nonblackimg = current2 > 0;
             pixlists = regionprops(nonblackimg, 'PixelList');
             [numRegions, ~] = size(pixlists);
             for p = 1:numRegions
+                edge = 0;
                 currentPixList = pixlists(p).PixelList;
                 [currentUnwantedArea, ~] = size(currentPixList);
-
-                if currentUnwantedArea > nonblack_areathresh            
+                if currentUnwantedArea > nonblack_areathresh
                     for n = 1:currentUnwantedArea
                         curY = currentPixList(n,1);
                         curX = currentPixList(n,2);
-                        current2(curX, curY) = 0;
-                        nonblackimg(curX, curY) = 0;   
+                        if curY == 1 || curY == b || curX == 1 || curX == a
+                            edge = 1;                
+                        end            
+                    end
+                    if edge == 1
+                        current2(curX,curY) = 0;
+                        nonblackimg(curX,curY) = 0;
                         largewm(curX,curY) = 1;
-                    end       
-                end        
+                    end
+                end
             end
-
+            
+            %decreases high_in until medPixVal >= medPixVal_target
             medPixVal = median(current2(current2 > 0));
             if medPixVal < medPixVal_target
                 while medPixVal < medPixVal_target
@@ -365,7 +410,8 @@ for u = 1:length(foldernames)
                     high_in = high_in_previous;
                 end
             end   
-
+            
+            %saves output images 
             newname4 = [image_names{m},'_large_wm_bw.png'];
             imwrite(largewm,['Output cropped images - tt',ttnums{k},'/WM_BW/',newname4], 'png');
 
