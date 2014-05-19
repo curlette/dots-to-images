@@ -438,7 +438,7 @@ for u = 1:length(foldernames)
             
             %saves all wm image before large regions are removed
             newname3 = [image_names{m},'_wm_bw.',save_format];
-            imwrite(nonblackimg2,[foldernames{u},'/Output cropped images - ',ttnums{k},'/WM_BW/',newname3], save_format);
+            imwrite(nonblackimg,[foldernames{u},'/Output cropped images - ',ttnums{k},'/WM_BW/',newname3], save_format);
             
             %decreases high_in until medPixVal >= medPixVal_target
             medPixVal = median(current2(logical(nonblackimg2)));
